@@ -43,6 +43,8 @@ def main():
                       help='Path to input file')
     parser.add_argument('-o', '--output', type=str, default='contigs.fasta.dbg',
                       help='Path to output FASTA file')
+    parser.add_argument('-g', '--gfa', type=str, default=None,
+                      help='Path to output GFA file (optional)')
     
     # Parse arguments
     args = parser.parse_args()
@@ -52,6 +54,11 @@ def main():
     left_kmers, right_kmers = process_kmers(args.kmer_size, data)
 
     graph = create_de_bruijn_graph(left_kmers, right_kmers)
+
+    # Export the graph to GFA if specified
+    if args.gfa:
+        export_graph_to_gfa(graph, args.gfa)
+        print(f"Wrote graph to {args.gfa}")
 
     contigs = find_eulerian_path(graph)
 
@@ -117,6 +124,36 @@ def process_kmers(k: int, data: list[str]):
         left_kmers.append(kmer[:-1])
         right_kmers.append(kmer[1:])
     return left_kmers, right_kmers
+
+
+def git export_graph_to_gfa(graph, output_file):
+    """
+    Export the de Bruijn graph to GFA format.
+    
+    Args:
+        graph: De Bruijn graph as a dictionary
+        output_file: Path to output GFA file
+    """
+    with open(output_file, 'w') as f:
+        # Write header
+        f.write("H\tVN:Z:1.0\n")
+        
+        # Write segments (nodes)
+        segments = set()
+        for src in graph:
+            segments.add(src)
+            for dst in graph[src]:
+                segments.add(dst)
+                
+        for i, segment in enumerate(segments):
+            f.write(f"S\t{segment}\t{segment}\n")
+        
+        # Write links (edges)
+        for src in graph:
+            for dst in graph[src]:
+                # In GFA, links use the orientation (+/-) for each segment
+                # For simplicity, we'll use + orientation for all segments
+                f.write(f"L\t{src}\t+\t{dst}\t+\t{len(src)-1}M\n")
 
 
 def write_contigs_to_fasta(contigs, output_file):
