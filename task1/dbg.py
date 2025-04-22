@@ -67,6 +67,77 @@ def main():
 
 
 def find_eulerian_path(graph):
+    # Create a deep copy of the graph to avoid modifying the original
+    graph_copy = defaultdict(list)
+    for u in graph:
+        graph_copy[u] = graph[u].copy()
+    
+    # Calculate in and out degrees for each node
+    in_deg = defaultdict(int)
+    out_deg = defaultdict(int)
+    for u in graph_copy:
+        for v in graph_copy[u]:
+            out_deg[u] += 1
+            in_deg[v] += 1
+    
+    all_nodes = set(in_deg) | set(out_deg)
+    
+    # Find all connected components in the graph
+    components = find_connected_components(graph_copy)
+    
+    contigs = []
+    
+    # Process each connected component
+    for component in components:
+        if not component:
+            continue
+            
+        # Find a valid starting node for each component
+        start = None
+        
+        # First, try to find a node with out_deg > in_deg (Eulerian path start)
+        for v in component:
+            if out_deg[v] - in_deg[v] == 1:
+                start = v
+                break
+                
+        # If no such node exists, try to find a node with equal in/out degree (Eulerian cycle)
+        if not start:
+            for v in component:
+                if v in graph_copy and graph_copy[v]:
+                    start = v
+                    break
+        
+        # Skip if no valid start node found
+        if not start:
+            continue
+            
+        # Find path starting from this node
+        path, stack = [], [start]
+        while stack:
+            v = stack[-1]
+            if v in graph_copy and graph_copy[v]:
+                stack.append(graph_copy[v].pop())
+            else:
+                path.append(stack.pop())
+        
+        # Construct the contig from the path
+        if path:
+            tour = path[::-1]
+            if len(tour) > 1:  # Only add if we have a real path
+                contig = tour[0] + ''.join(map(lambda x: x[-1], tour[1:]))
+                contigs.append(contig)
+    
+    # If no contigs were found, return the original behavior with one path
+    if not contigs and graph:
+        original_path = original_find_eulerian_path(graph)
+        return original_path
+        
+    return contigs
+
+
+def original_find_eulerian_path(graph):
+    """Original implementation kept as fallback"""
     in_deg = defaultdict(int)
     out_deg = defaultdict(int)
     for u in graph:
@@ -93,7 +164,37 @@ def find_eulerian_path(graph):
     tour = path[::-1]
     return [tour[0] + ''.join(map(lambda x: x[-1], tour[1:]))]
 
+
+def find_connected_components(graph):
+    """Find all connected components in the graph"""
+    # Create an undirected version of the graph for component analysis
+    undirected = defaultdict(set)
+    for u in graph:
+        for v in graph[u]:
+            undirected[u].add(v)
+            undirected[v].add(u)
     
+    visited = set()
+    components = []
+    
+    # DFS to find connected components
+    def dfs(node, component):
+        visited.add(node)
+        component.add(node)
+        for neighbor in undirected[node]:
+            if neighbor not in visited:
+                dfs(neighbor, component)
+    
+    # Find all components
+    for node in undirected:
+        if node not in visited:
+            component = set()
+            dfs(node, component)
+            components.append(component)
+    
+    return components
+
+
 def create_de_bruijn_graph(left_kmers: list[str], right_kmers: list[str]):
     graph = defaultdict(list)
     for left, right in zip(left_kmers, right_kmers):
