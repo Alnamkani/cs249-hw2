@@ -227,34 +227,16 @@ def process_kmers(k: int, data: list[str]):
     return left_kmers, right_kmers
 
 
-def export_graph_to_gfa(graph, output_file):
-    """
-    Export the de Bruijn graph to GFA format.
-    
-    Args:
-        graph: De Bruijn graph as a dictionary
-        output_file: Path to output GFA file
-    """
-    with open(output_file, 'w') as f:
-        # Write header
+def export_graph_to_gfa(graph: dict, output_file: str):
+    """Export a de Bruijn graph (dict {node:[neighbors]}) to GFA 1.0."""
+    with open(output_file, "w") as f:
         f.write("H\tVN:Z:1.0\n")
-        
-        # Write segments (nodes)
-        segments = set()
-        for src in graph:
-            segments.add(src)
-            for dst in graph[src]:
-                segments.add(dst)
-                
-        for i, segment in enumerate(segments):
-            f.write(f"S\t{segment}\t{segment}\n")
-        
-        # Write links (edges)
-        for src in graph:
-            for dst in graph[src]:
-                # In GFA, links use the orientation (+/-) for each segment
-                # For simplicity, we'll use + orientation for all segments
-                f.write(f"L\t{src}\t+\t{dst}\t+\t{len(src)-1}M\n")
+        nodes = set(graph)
+        for adj in graph.values(): nodes.update(adj)
+        for n in nodes: f.write(f"S\t{n}\t{n}\n")   # segments
+        for src, dsts in graph.items():             # links (+ orientation, 0‑overlap)
+            for dst in dsts: f.write(f"L\t{src}\t+\t{dst}\t+\t0M\n")
+
 
 
 def write_contigs_to_fasta(contigs, output_file):
