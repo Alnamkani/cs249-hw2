@@ -126,7 +126,7 @@ def process_kmers(k: int, data: list[str]):
     return left_kmers, right_kmers
 
 
-def git export_graph_to_gfa(graph, output_file):
+def export_graph_to_gfa(graph, output_file):
     """
     Export the de Bruijn graph to GFA format.
     
