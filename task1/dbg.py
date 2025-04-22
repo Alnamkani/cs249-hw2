@@ -67,23 +67,14 @@ def main():
 
 
 def find_eulerian_path(graph):
-    # Create a deep copy of the graph to avoid modifying the original
-    graph_copy = defaultdict(list)
+    # Convert graph to a format that tracks edge multiplicity
+    edge_count = defaultdict(lambda: defaultdict(int))
     for u in graph:
-        graph_copy[u] = graph[u].copy()
+        for v in graph[u]:
+            edge_count[u][v] += 1
     
-    # Calculate in and out degrees for each node
-    in_deg = defaultdict(int)
-    out_deg = defaultdict(int)
-    for u in graph_copy:
-        for v in graph_copy[u]:
-            out_deg[u] += 1
-            in_deg[v] += 1
-    
-    all_nodes = set(in_deg) | set(out_deg)
-    
-    # Find all connected components in the graph
-    components = find_connected_components(graph_copy)
+    # Find connected components
+    components = find_connected_components(graph)
     
     contigs = []
     
@@ -91,8 +82,16 @@ def find_eulerian_path(graph):
     for component in components:
         if not component:
             continue
-            
-        # Find a valid starting node for each component
+        
+        # Calculate in and out degrees for each node
+        in_deg = defaultdict(int)
+        out_deg = defaultdict(int)
+        for u in component:
+            for v, count in edge_count[u].items():
+                out_deg[u] += count
+                in_deg[v] += count
+        
+        # Find a valid starting node
         start = None
         
         # First, try to find a node with out_deg > in_deg (Eulerian path start)
@@ -100,39 +99,40 @@ def find_eulerian_path(graph):
             if out_deg[v] - in_deg[v] == 1:
                 start = v
                 break
-                
-        # If no such node exists, try to find a node with equal in/out degree (Eulerian cycle)
+        
+        # If no such node exists, use any node with outgoing edges
         if not start:
             for v in component:
-                if v in graph_copy and graph_copy[v]:
+                if v in edge_count and any(edge_count[v].values()):
                     start = v
                     break
         
         # Skip if no valid start node found
         if not start:
             continue
-            
-        # Find path starting from this node
-        path, stack = [], [start]
-        while stack:
-            v = stack[-1]
-            if v in graph_copy and graph_copy[v]:
-                stack.append(graph_copy[v].pop())
-            else:
-                path.append(stack.pop())
+        
+        # Use Hierholzer's algorithm for finding Eulerian path
+        path = []
+        def dfs(node):
+            for next_node in list(edge_count[node].keys()):
+                if edge_count[node][next_node] > 0:
+                    edge_count[node][next_node] -= 1
+                    dfs(next_node)
+            path.append(node)
+        
+        dfs(start)
+        path.reverse()
         
         # Construct the contig from the path
-        if path:
-            tour = path[::-1]
-            if len(tour) > 1:  # Only add if we have a real path
-                contig = tour[0] + ''.join(map(lambda x: x[-1], tour[1:]))
-                contigs.append(contig)
+        if len(path) > 1:
+            contig = path[0] + ''.join(map(lambda x: x[-1], path[1:]))
+            contigs.append(contig)
     
     # If no contigs were found, return the original behavior with one path
     if not contigs and graph:
         original_path = original_find_eulerian_path(graph)
         return original_path
-        
+    
     return contigs
 
 
