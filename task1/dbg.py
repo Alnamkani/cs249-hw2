@@ -15,6 +15,8 @@ https://www.cs.jhu.edu/~langmea/resources/lecture_notes/assembly_dbg.pdf
 import argparse
 from collections import defaultdict
 from Bio import SeqIO
+import sys
+sys.setrecursionlimit(10000)  # or any number > default (~1000)
 
 
 def read_fastq(file_path: str):
