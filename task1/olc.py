@@ -108,7 +108,7 @@ def maximal_non_branching_paths(graph):
     Find all maximal non-branching paths in a graph.
     
     Args:
-        graph: A dictionary where keys are nodes and values are lists of outgoing neighbors
+        graph: A dictionary where keys are nodes and values are dictionaries of outgoing neighbors
     
     Returns:
         A list of paths, where each path is a list of nodes
@@ -137,7 +137,8 @@ def maximal_non_branching_paths(graph):
                         
                         # Extend path while w is a 1-in-1-out node
                         while w in graph and in_degree.get(w, 0) == 1 and out_degree.get(w, 0) == 1:
-                            u = graph[w][0]  # The only outgoing neighbor
+                            # Get the only outgoing neighbor (first and only key in the dictionary)
+                            u = next(iter(graph[w]))
                             path.append(u)
                             visited_edges.add((w, u))
                             w = u
@@ -148,7 +149,7 @@ def maximal_non_branching_paths(graph):
     for v in graph:
         if in_degree.get(v, 0) == 1 and out_degree.get(v, 0) == 1:
             # Check if this node is part of an unvisited cycle
-            w = graph[v][0]
+            w = next(iter(graph[v]))  # Get the first (and only) neighbor
             if (v, w) not in visited_edges:
                 cycle = [v]
                 current = w
@@ -159,14 +160,13 @@ def maximal_non_branching_paths(graph):
                     cycle.append(current)
                     if current not in graph or not graph[current]:
                         break  # Not a cycle if a node has no outgoing edges
-                    next_node = graph[current][0]
+                    next_node = next(iter(graph[current]))  # Get the first (and only) neighbor
                     visited_edges.add((current, next_node))
                     current = next_node
                 
                 if current == v:  # Only add if it's a complete cycle
                     paths.append(cycle)
     
-
     return sort_by_in_degree(paths, graph)
 
 
